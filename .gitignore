@@ -1,3 +1,4 @@
 .env
 bot/logs
 admin/logs
+__pycache__
