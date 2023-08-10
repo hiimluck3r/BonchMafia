@@ -24,7 +24,7 @@ services:
     ports:
       - "80:80"
 
-  bonchmafia:
+  main:
     container_name: bonchmafia
     build: ./bot
     restart: on-failure
@@ -37,10 +37,11 @@ services:
       ADMIN: $ADMIN
     volumes:
       - ./logs:/~/BonchMafia/logs
+      - ./bot/pictures:/~/BonchMafia/bot/pictures
     depends_on:
       - db
 
-  bonchmafia_admin:
+  admin:
     container_name: bonchmafia_admin
     build: ./admin
     restart: on-failure
