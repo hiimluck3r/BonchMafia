@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: $USER
       POSTGRES_PASSWORD: $PASSWORD
-      POSTGRES_DB: db
+      POSTGRES_DB: $DB
     ports:
       - "5432:5432"
     volumes:
@@ -24,14 +24,14 @@ services:
     ports:
       - "80:80"
 
-  bonchoverflow:
+  bonchmafia:
     container_name: bonchmafia
     build: ./bot
     restart: on-failure
     environment:
       API_TOKEN: $API_TOKEN
-      HOST: db
-      DB: db
+      HOST: $HOST
+      DB: $DB
       USER: $USER
       PASSWORD: $PASSWORD
       ADMIN: $ADMIN
@@ -40,12 +40,12 @@ services:
     depends_on:
       - db
 
-  bonchoverflow_support:
+  bonchmafia_admin:
     container_name: bonchmafia_admin
     build: ./admin
     restart: on-failure
     environment:
-      SUPPORT_TOKEN: $SUPPORT_TOKEN
+      ADMIN_TOKEN: $ADMIN_TOKEN
       ADMIN: $ADMIN
 
 volumes:
