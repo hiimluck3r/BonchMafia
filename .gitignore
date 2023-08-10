@@ -1,4 +1,4 @@
 .env
-bot/logs
-admin/logs
+logs
 __pycache__
+postgresql/data
