@@ -274,6 +274,9 @@ async def process_student_name(message: types.Message, state: FSMContext):
         mentor = data['mentor_name']
         cursor = conn.cursor()
         sql = f"UPDATE users SET mentor = '{mentor}' WHERE student = '{student}';"
+        cursor.execute(sql)
+        conn.commit()
+        cursor.close()
 
         await state.finish()
         await bot.send_message(chat_id=call.from_user.id, text="Наставник изменён.", reply_markup=keyboard)
