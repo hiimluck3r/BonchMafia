@@ -203,19 +203,16 @@ class Notify(StatesGroup):
 class GameProtocol(StatesGroup):
     gamedate = State()
     gamehost = State()
-    player_1 = State()
-    player_2 = State()
-    player_3 = State()
-    player_4 = State()
-    player_5 = State()
-    player_6 = State()
-    player_7 = State()
-    player_8 = State()
-    player_9 = State()
-    player_10 = State()
+    don = State()
+    sheriff = State()
+    mafia = State()
+    citizen = State()
     winner = State()
 
 def nickname_checker(nickname):
+    if nickname == "blank":
+        return True
+
     cursor = conn.cursor()
     sql = f"SELECT COUNT(*) FROM users WHERE nickname = '{nickname}';"
     cursor.execute(sql)
@@ -245,15 +242,19 @@ async def admin_query_handler(call: types.CallbackQuery, state: FSMContext):
 
     if operation == 'notify':
         await state.set_state(Notify.notification_text)
-        await bot.send_message(chat_id=call.from_user.id, text="Введите никнейм наставника", reply_markup=keyboard)
+        await bot.send_message(chat_id=call.from_user.id, text="Notify", reply_markup=keyboard)
     elif operation == 'mentor':
         await state.set_state(Mentor.student_name)
-        await bot.send_message(chat_id=call.from_user.id, text="Введите никнейм ученика", reply_markup=keyboard)
+        await bot.send_message(chat_id=call.from_user.id, text="Введите никнейм ученика:", reply_markup=keyboard)
     elif operation == 'game':
         await state.set_state(GameProtocol.gamedate)
-        await bot.send_message(chat_id=call.from_user.id, text="Введите никнейм наставника", reply_markup=keyboard)
+        await bot.send_message(chat_id=call.from_user.id, text="Введите точную дату игры:", reply_markup=keyboard)
     
     await call.answer()
+
+"""
+Назначение наставника
+"""
 
 @dp.message_handler(state=Mentor.student_name)
 async def process_student_name(message: types.Message, state: FSMContext):
@@ -262,10 +263,10 @@ async def process_student_name(message: types.Message, state: FSMContext):
     
     if nickname_checker(data['student_name']):
         await state.set_state(Mentor.mentor_name)
-        await bot.send_message(chat_id=message.from_user.id, text="Введите никнейм наставника")
+        await message.answer(f"Введите никнейм наставника:")
     else:
         await state.set_state(Mentor.student_name)
-        await bot.send_message(chat_id=message.from_user.id, text=f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
+        await message.answer(f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
 
 @dp.message_handler(state=Mentor.mentor_name)
 async def process_student_name(message: types.Message, state: FSMContext):
@@ -283,7 +284,148 @@ async def process_student_name(message: types.Message, state: FSMContext):
 
         await state.finish()
         keyboard = goto_menu()
-        await bot.send_message(chat_id=message.from_user.id, text="Наставник изменён.", reply_markup=keyboard)
+        await message.answer(f"Наставник изменён.", reply_markup=keyboard)
     else:
         await state.set_state(Mentor.mentor_name)
-        await bot.send_message(chat_id=message.from_user.id, text=f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
+        await message.answer(f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
+
+"""
+Внесение игрового протокола
+"""
+#current_state = await state.get_state()
+
+@dp.message_handler(state=GameProtocol.gamedate)
+async def process_gamedate(message: types.Message, state: FSMContext):
+    await state.update_data(gamedate=message.text)
+
+    await state.set_state(GameProtocol.gamehost)
+    await message.answer("Введите ник ведущего:")
+
+@dp.message_handler(state=GameProtocol.gamehost)
+async def process_host(message: types.Message, state: FSMContext):
+    await state.update_data(gamehost=message.text)
+
+    await state.set_state(GameProtocol.don)
+    await message.answer("Введите никнейм дона:")
+
+@dp.message_handler(state=GameProtocol.don)
+async def process_don(message: types.Message, state: FSMContext):
+    if nickname_checker(message.text):
+        await state.update_data(don=message.text)
+        await state.set_state(GameProtocol.sheriff)
+        await message.answer("Введите никнейм шерифа:")
+    else:
+        await message.answer(f"Пользователь не найден. Попробуйте ещё раз.")
+        await state.set_state(GameProtocol.don)
+
+@dp.message_handler(state=GameProtocol.sheriff)
+async def process_sheriff(message: types.Message, state: FSMContext):
+    if nickname_checker(message.text):
+        await state.update_data(sheriff=message.text)
+        await state.set_state(GameProtocol.mafia)
+        await message.answer("Введите никнеймы оставшихся 2 мафий через точку (пример dflt.Кринж):")
+    else:
+        await message.answer(f"Пользователь не найден. Попробуйте ещё раз.")
+        await state.set_state(GameProtocol.sheriff)
+
+@dp.message_handler(state=GameProtocol.mafia)
+async def process_mafia(message: types.Message, state: FSMContext):
+    mafia = message.text.split('.')
+
+    for nickname in mafia:
+        if nickname_checker(nickname) and len(mafia)==2:
+            pass
+        elif len(mafia)!=2:
+            await message.answer(f"Неверно заданы пользователи. Указанное количество пользователей: {len(mafia)}")
+            return await state.set_state(GameProtocol.mafia)
+        else:
+            await message.answer(f"Пользователь {nickname} не найден. Попробуйте ещё раз.")
+            return await state.set_state(GameProtocol.mafia)
+
+    await state.update_data(mafia=mafia)
+
+    await state.set_state(GameProtocol.citizen)
+    await message.answer("Введите никнеймы мирных игроков (пример dflt.Кринж... 7 игроков):")
+
+@dp.message_handler(state=GameProtocol.citizen)
+async def process_citizen(message: types.Message, state: FSMContext):
+    citizen = message.text.split('.')
+
+    for nickname in citizen:
+        if nickname_checker(nickname) and len(citizen)==7:
+            pass
+        elif len(citizen)!=7:
+            await message.answer(f"Неверно заданы пользователи. Указанное количество пользователей: {len(citizen)}")
+            return await state.set_state(GameProtocol.citizen)
+        else:
+            await message.answer(f"Пользователь {nickname} не найден. Попробуйте ещё раз.")
+            return await state.set_state(GameProtocol.citizen)
+
+    await state.update_data(citizen=citizen)
+
+    await state.set_state(GameProtocol.winner)
+    await message.answer("Введите победившую команду (К или Ч, где К - Красные, Ч - Чёрные):")
+
+@dp.message_handler(state=GameProtocol.winner)
+async def process_winner(message: types.Message, state: FSMContext):
+    if message.text.lower() == 'ч' or message.text.lower()=='к':
+        keyboard = goto_menu()
+        await state.update_data(winner=message.text.lower())
+        data = await state.get_data()
+        await state.finish()
+
+        mafia = '.'.join(data['mafia'])
+        citizen = '.'.join(data['citizen'])
+
+        cursor = conn.cursor()
+        sql = f"INSERT INTO games(gamedate, gamehost, don, sheriff, mafia, citizen, winner) VALUES ('{data['gamedate']}', '{data['gamehost']}', '{data['don']}', '{data['sheriff']}', '{mafia}', '{citizen}', '{data['winner']}');"
+        cursor.execute(sql)
+
+        if data['winner']=='ч':
+            sql = f"UPDATE users SET don = don+1 WHERE nickname = '{data['don']}';"
+            cursor.execute(sql)
+            sql = f"UPDATE users SET won = won+1 WHERE nickname = '{data['don']}';"
+            cursor.execute(sql)
+
+            for nickname in data['mafia']:
+                sql = f"UPDATE users SET mafia = mafia+1 WHERE nickname = '{nickname}';"
+                cursor.execute(sql)
+                sql = f"UPDATE users SET won = won+1 WHERE nickname = '{nickname}';"
+                cursor.execute(sql)
+            
+            sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{data['sheriff']}';"
+            cursor.execute(sql)
+
+            for nickname in data['citizen']:
+                sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{nickname}';"
+                cursor.execute(sql)
+
+        else:
+            sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{data['don']}';"
+            cursor.execute(sql)
+
+            for nickname in data['mafia']:
+                sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{nickname}';"
+                cursor.execute(sql)
+
+            sql = f"UPDATE users SET sheriff = sheriff+1 WHERE nickname = '{data['sheriff']}';"
+            cursor.execute(sql)
+            sql = f"UPDATE users SET won = won+1 WHERE nickname = '{data['sheriff']}';"
+            cursor.execute(sql)
+
+            for nickname in data['citizen']:
+                sql = f"UPDATE users SET citizen = citizen+1 WHERE nickname = '{nickname}';"
+                cursor.execute(sql)
+                sql = f"UPDATE users SET won = won+1 WHERE nickname = '{nickname}';"
+                cursor.execute(sql)
+        
+        conn.commit()
+        cursor.close()
+        await message.answer("Игра записана.", reply_markup=keyboard)
+    else:
+        await state.set_state(GameProtocol.winner)
+        await message.answer("Неверно указан победитель. Укажите 'К', если победили красные и 'Ч', если победили чёрные.")
+
+"""
+Объявления
+"""
