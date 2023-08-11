@@ -41,13 +41,5 @@ services:
     depends_on:
       - db
 
-  admin:
-    container_name: bonchmafia_admin
-    build: ./admin
-    restart: on-failure
-    environment:
-      ADMIN_TOKEN: $ADMIN_TOKEN
-      ADMIN: $ADMIN
-
 volumes:
   logs:
