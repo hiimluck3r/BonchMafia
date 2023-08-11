@@ -161,7 +161,7 @@ async def process_nickname(message: types.Message, state: FSMContext):
     cursor = conn.cursor()
     sql = f"SELECT COUNT(*) FROM users WHERE (nickname = '{message.text}');"
     cursor.execute(sql)
-    overlapping_users = cursor.fetchone()
+    overlapping_users = cursor.fetchone()[0]
     cursor.close()
     if overlapping_users >= 1:
         await message.answer(f"Уже имеется пользователь с таким именем. Введите другой никнейм:")
@@ -219,7 +219,7 @@ def nickname_checker(nickname):
     cursor = conn.cursor()
     sql = f"SELECT COUNT(*) FROM users WHERE nickname = '{nickname}';"
     cursor.execute(sql)
-    user_count = cursor.fetchone()
+    user_count = cursor.fetchone()[0]
     cursor.close()
 
     if user_count == 1:
@@ -233,10 +233,9 @@ def nickname_checker(nickname):
 
 @dp.message_handler(commands="admin", chat_id=adminids)
 async def admin_menu(message: types.Message):
-    if access:
-        print(f"Admin logged: {message.from_user.id}", file=sys.stderr)
-        keyboard = get_admin_menu()
-        await message.answer(f"Админ меню", reply_markup=keyboard)
+    print(f"Admin logged: {message.from_user.id}", file=sys.stderr)
+    keyboard = get_admin_menu()
+    await message.answer(f"Админ меню", reply_markup=keyboard)
 
 @dp.callback_query_handler(Text(startswith="admin"), chat_id=adminids)
 async def admin_query_handler(call: types.CallbackQuery, state: FSMContext):
@@ -258,28 +257,33 @@ async def admin_query_handler(call: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(state=Mentor.student_name)
 async def process_student_name(message: types.Message, state: FSMContext):
+    await state.update_data(student_name=message.text)
     data = await state.get_data()
+    
     if nickname_checker(data['student_name']):
         await state.set_state(Mentor.mentor_name)
-        await bot.send_message(chat_id=call.from_user.id, text="Введите никнейм наставника")
+        await bot.send_message(chat_id=message.from_user.id, text="Введите никнейм наставника")
     else:
         await state.set_state(Mentor.student_name)
-        await bot.send_message(chat_id=call.from_user.id, text=f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
+        await bot.send_message(chat_id=message.from_user.id, text=f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
 
 @dp.message_handler(state=Mentor.mentor_name)
 async def process_student_name(message: types.Message, state: FSMContext):
+    await state.update_data(mentor_name=message.text)
     data = await state.get_data()
+
     if nickname_checker(data['mentor_name']):
         student = data['student_name']
         mentor = data['mentor_name']
         cursor = conn.cursor()
-        sql = f"UPDATE users SET mentor = '{mentor}' WHERE student = '{student}';"
+        sql = f"UPDATE users SET mentor = '{mentor}' WHERE nickname = '{student}';"
         cursor.execute(sql)
         conn.commit()
         cursor.close()
 
         await state.finish()
-        await bot.send_message(chat_id=call.from_user.id, text="Наставник изменён.", reply_markup=keyboard)
+        keyboard = goto_menu()
+        await bot.send_message(chat_id=message.from_user.id, text="Наставник изменён.", reply_markup=keyboard)
     else:
         await state.set_state(Mentor.mentor_name)
-        await bot.send_message(chat_id=call.from_user.id, text=f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
+        await bot.send_message(chat_id=message.from_user.id, text=f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
