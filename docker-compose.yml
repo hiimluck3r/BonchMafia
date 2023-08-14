@@ -2,7 +2,7 @@ version: '3.9'
 services:
   db:
     container_name: db
-    build: ./postgresql
+    image: luck3rinc/bonchmafia_db:latest
     restart: always
     environment:
       POSTGRES_USER: $USER
@@ -26,7 +26,7 @@ services:
 
   main:
     container_name: bonchmafia
-    build: ./bot
+    image: luck3rinc/bonchmafia:latest
     restart: on-failure
     environment:
       API_TOKEN: $API_TOKEN
