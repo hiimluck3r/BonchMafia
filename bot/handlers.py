@@ -7,7 +7,7 @@ from bot.dispatcher import dp, bot
 from bot.controllers import *
 from aiogram import types
 from time import sleep
-from bot import DB, USER, PASSWORD, HOST, ADMIN
+from bot import DB, USER, PASSWORD, HOST, ADMIN, PORT
 from aiogram.utils.exceptions import BotBlocked
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -20,7 +20,7 @@ flag = True
 adminids = [ADMIN]
 while flag:
     try:
-        conn = psycopg2.connect(dbname=DB, user=USER, password=PASSWORD, host=HOST) #указывать в .env
+        conn = psycopg2.connect(dbname=DB, user=USER, password=PASSWORD, host=HOST, port=PORT) #указывать в .env
         print('Connection to database is established')
         flag = False
 
@@ -48,7 +48,7 @@ todo Блок для работы с блокировкой и разблоки�
 
 @dp.message_handler(Text(equals="Техническая поддержка"))
 async def support(message: types.Message):
-    await message.answer(f'По всем вопросам обращайтесь в личные сообщения группы ВК (https://vk.com/bonchmafia).\nИли в наш телеграм канал: t.me/bonchmafia.')
+    await message.answer(f'По всем вопросам обращайтесь в личные сообщения группы ВК (https://vk.com/bonchmafia).\nИли в наш телеграм канал (t.me/bonchmafia).')
 
 greet = "Добро пожаловать в клуб BonchMafia!\n\n Этот бот ведет учет игр, которые отражаются на вашей статистике. Свою статистику вы можете посмотреть в виде игровой карты в главном меню."
 
@@ -73,7 +73,7 @@ async def main_menu(message: types.Message):
 async def my_card(message: types.Message):
     userid = message.from_user.id
     cursor = conn.cursor()
-    cursor.execute(f"SELECT * FROM users WHERE userid={userid}")
+    cursor.execute(f"SELECT * FROM users WHERE userid={userid};")
     userstats = cursor.fetchone()
     cursor.close()
     if userstats is None:
