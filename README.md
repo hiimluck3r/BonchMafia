@@ -20,7 +20,11 @@
 
 ## Установка и настройка
 
-Достаточно использовать docker-compose.yml в этом репозитории:
+```
+git clone https://github.com/hiimluck3r/BonchMafia.git
+```
+
+Затем отредактируйте данные в docker-compose.yml (сделайте .env или впишите напрямую, как вам удобнее)
 
 ```
 version: '3.9'
@@ -69,6 +73,11 @@ services:
 
 volumes:
   logs:
+```
+
+После запустите при помощи:
+```
+docker-compose -p bonchmafia up -d
 ```
 
 ## Лицензия
