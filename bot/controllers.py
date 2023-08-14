@@ -4,19 +4,20 @@ import psycopg2
 
 from aiogram import types
 from PIL import Image, ImageFont, ImageDraw, ImageFilter, ImageOps
+from bot.dispatcher import bot
 
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    buttons = ["Моя карта", "Топ игроков"]
+    buttons = ["Моя карта", "Другой игрок"]
     keyboard.add(*buttons)
     buttons = ["Техническая поддержка"]
-    keyboard.add(*buttons) #мб добавить просмотр карт других игроков?
+    keyboard.add(*buttons) 
                             #хотелось бы расширить меню
     return keyboard
 
 def get_card_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    buttons = ["Изменить изображение профиля", "Изменить никнейм"]
+    buttons = ["Изменить изображение", "Изменить никнейм"]
     keyboard.add(*buttons)
     buttons = ["Главное меню"]
     keyboard.add(*buttons)
@@ -43,7 +44,8 @@ def profile_circular_process(nickname):
         if os.path.exists(f'/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png'):
             os.remove(f'/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png')
         else:
-            print(f"File f'/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png' doesn't exist") 
+            print(f"File f'/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png' doesn't exist")
+
     except Exception as e:
         print(f'Found an exception at profile_circular_process: {e}')
 
@@ -81,6 +83,9 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
         roles_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-Light.otf", 14)
 
         card = background.copy()
+
+        backplate_size = (360, 360)
+        backplate = backplate.resize(backplate_size)
 
         card.paste(backplate, (180, 182), backplate)
         card.paste(profile_picture, (185, 187), profile_picture)
@@ -223,7 +228,7 @@ def get_league(won, total):
 def get_admin_menu():
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     buttons = [
-            types.InlineKeyboardButton(text='Сделать оповещение', callback_data='admin_notify'),
+            #types.InlineKeyboardButton(text='Сделать оповещение', callback_data='admin_notify'),
             #types.InlineKeyboardButton(text='Забанить', callback_data='admin_ban'),
             #types.InlineKeyboardButton(text='Разбанить', callback_data='admin_pardon',),
             types.InlineKeyboardButton(text='Назначить наставника', callback_data='admin_mentor'),
@@ -231,3 +236,12 @@ def get_admin_menu():
         ]
     keyboard.add(*buttons)
     return keyboard
+
+async def get_username(user_id):
+    try:
+        chat = await bot.get_chat(user_id)
+        username = chat.username
+        return username
+    except Exception as e:
+        print("Error while getting username:", e)
+        return "404n0tF0uNd"

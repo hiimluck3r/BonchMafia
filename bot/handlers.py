@@ -70,7 +70,7 @@ async def main_menu(message: types.Message):
 """
 
 @dp.message_handler(Text(equals="Моя карта"))
-async def mycard(message: types.Message):
+async def my_card(message: types.Message):
     userid = message.from_user.id
     cursor = conn.cursor()
     cursor.execute(f"SELECT * FROM users WHERE userid={userid}")
@@ -79,7 +79,7 @@ async def mycard(message: types.Message):
     if userstats is None:
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton(text="Создать новую карту", callback_data="card_new.start"))
-        await message.answer("Похоже, что вашей карты нет.", reply_markup=keyboard)
+        await message.answer("Похоже, у вас нет карты.", reply_markup=keyboard)
     else:
         userid = userstats[1]
         don = userstats[2]
@@ -104,6 +104,17 @@ async def mycard(message: types.Message):
         card_photo = open(f"/~/BonchMafia/bot/pictures/cards/{nickname}.png", 'rb')
         await message.answer_photo(card_photo, reply_markup=keyboard,
         caption="Ваша карта")
+
+class OtherCard(StatesGroup):
+    nickname = State()
+
+@dp.message_handler(Text(equals="Другой игрок"))
+async def else_card(message: types.Message, state: FSMContext):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add("Отмена")
+
+    await message.answer("Введите имя пользователя, карту которого хотите посмотреть:", reply_markup=keyboard)
+    await state.set_state(OtherCard.nickname.state)
 
 class CardSetup(StatesGroup):
     nickname = State()
@@ -149,6 +160,48 @@ async def process_nickname_invalid(message: types.Message, state: FSMContext):
     return await message.answer(f'Неверный никнейм.\nИмя игрока не должно содержать символы "., /, _". Длина ника - от 1 до 20 символов.')
     await state.set_state(CardSetup.nickname.state)
 
+
+@dp.message_handler(state=OtherCard.nickname)
+async def process_else_card(message: types.Message, state: FSMContext):
+    try:
+        await state.update_data(nickname=message.text)
+        data = await state.get_data()
+    except Exception as e:
+        print(f'Found an exception at else_card data parse: {e}', file=sys.stderr)
+    
+    await state.finish()
+
+    nickname = data['nickname']
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT * FROM users WHERE nickname='{nickname}'")
+    userstats = cursor.fetchone()
+    cursor.close()
+    if userstats is None:
+        await message.answer("Похоже, что такого игрока нет.", reply_markup=goto_menu())
+    else:
+        userid = userstats[1]
+        don = userstats[2]
+        don_total = userstats[3]
+        mafia = userstats[4]
+        mafia_total = userstats[5]
+        sheriff = userstats[6]
+        sheriff_total = userstats[7]
+        citizen = userstats[8]
+        citizen_total = userstats[9]
+        won = userstats[10]
+        lost = userstats[11]
+        total = won+lost
+        mentor = userstats[12]
+        nickname = userstats[13]
+
+        league = get_league(won, total)
+        
+        card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, sheriff_total, citizen, citizen_total, won, lost, total, mentor)
+        
+        card_photo = open(f"/~/BonchMafia/bot/pictures/cards/{nickname}.png", 'rb')
+        await message.answer_photo(card_photo, reply_markup=goto_menu(),
+        caption=f"Карта {nickname}")
+
 """
 Создание новой карты
 """
@@ -158,7 +211,6 @@ async def process_nickname(message: types.Message, state: FSMContext):
     try:
         await state.update_data(nickname=message.text)
         data = await state.get_data()
-        print(data['nickname'])
     except Exception as e:
         print(f'Found an exception at process_nickname data parse: {e}', file=sys.stderr)
 
@@ -181,7 +233,8 @@ async def process_profile_picture(message: types.Message, state: FSMContext):
         nickname = data['nickname']
         print('Found new player: ', nickname)
 
-        await message.photo[-1].download(destination_file=f"/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png")
+        with open(f"/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png", "wb") as profile_photo:
+            await message.photo[-1].download(destination_file=profile_photo)
         profile_circular_process(nickname)
 
         await state.finish()
@@ -194,6 +247,90 @@ async def process_profile_picture(message: types.Message, state: FSMContext):
         await message.answer(f"Ваша карта была успешно добавлена. Приятных игр!", reply_markup=keyboard)
     except Exception as e:
         print(f"Found an exception at process_profile_picture: {e}", file=sys.stderr)
+
+"""
+Изменение никнейма пользователя
+"""
+class ChangeNickname(StatesGroup):
+    nickname = State()
+
+class ChangePicture(StatesGroup):
+    photo = State()
+
+@dp.message_handler(Text(equals="Изменить никнейм"))
+async def change_nickname(message: types.Message, state: FSMContext):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add("Отмена")
+
+    await message.answer(f"Введите новый никнейм:", reply_markup=keyboard)
+
+    await state.set_state(ChangeNickname.nickname.state)
+
+
+@dp.message_handler(lambda message: any([(len(message.text)>20), (len(message.text)<1), ('.' in message.text), ('/' in message.text), ('_' in message.text)]), state=ChangeNickname.nickname)
+async def process_changed_nickname_invalid(message: types.Message, state: FSMContext):
+    return await message.answer(f'Неверный никнейм.\nИмя игрока не должно содержать символы "., /, _". Длина ника - от 1 до 20 символов.')
+    await state.set_state(ChangeNickname.finisher.state)
+
+@dp.message_handler(state=ChangeNickname.nickname)
+async def process_changed_nickname(message: types.Message, state: FSMContext):
+    try:
+        await state.update_data(nickname=message.text)
+        data = await state.get_data()
+        print(data['nickname'])
+    except Exception as e:
+        print(f'Found an exception at process_nickname data parse: {e}', file=sys.stderr)
+
+    cursor = conn.cursor()
+    sql = f"SELECT COUNT(*) FROM users WHERE (nickname = '{message.text}');"
+    cursor.execute(sql)
+    overlapping_users = cursor.fetchone()[0]
+    if overlapping_users >= 1:
+        cursor.close()
+        await message.answer(f"Уже имеется пользователь с таким именем. Введите другой никнейм:")
+        await state.set_state(CardSetup.nickname.state)
+    else:
+        sql = f"SELECT * FROM users WHERE userid = {message.from_user.id};"
+        cursor.execute(sql)
+        nickname = cursor.fetchone()[-1]
+        await message.answer(f"Имя пользователя изменено.", reply_markup=goto_menu())
+        sql = f"UPDATE users SET nickname = '{data['nickname']}' WHERE userid = {message.from_user.id};"
+        cursor.execute(sql)
+        conn.commit()
+        cursor.close()
+
+        old_photo_name = f"/~/BonchMafia/bot/pictures/profile/{nickname}.png"
+        new_photo_name = f"/~/BonchMafia/bot/pictures/profile/{data['nickname']}.png"
+
+        os.rename(old_photo_name, new_photo_name)
+        await state.finish()
+
+"""
+Изменение аватарки пользователя
+"""  
+
+@dp.message_handler(Text(equals="Изменить изображение"))
+async def change_profile_picture(message: types.Message, state: FSMContext):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add("Отмена")
+
+    await message.answer(f"Пришлите новое изображение профиля:", reply_markup=keyboard)
+
+    await state.set_state(ChangePicture.photo.state)
+
+@dp.message_handler(content_types=["photo"], state=ChangePicture.photo)
+async def process_changed_profile_picture(message: types.Message, state: FSMContext):
+    cursor = conn.cursor()
+    sql = f"SELECT * FROM users WHERE userid = {message.from_user.id};"
+    cursor.execute(sql)
+    nickname = cursor.fetchone()[-1]
+    cursor.close()
+
+    await message.photo[-1].download(destination_file=f"/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png")
+    profile_circular_process(nickname)
+
+    await state.finish()
+    await message.answer("Изображение профиля изменено.", reply_markup=goto_menu())
 
 
 """
@@ -451,3 +588,44 @@ async def process_winner(message: types.Message, state: FSMContext):
 """
 Объявления
 """
+
+"""
+Редактировать админов (root only)
+"""
+@dp.message_handler(commands="admadd", chat_id=ADMIN)
+async def admin_add(message: types.Message):
+    global adminids
+
+    arguments = message.get_args().split('.')
+    adminids.append(int(arguments[0]))
+    cursor = conn.cursor()
+    sql = f"INSERT INTO admins (userid, nickname) VALUES ({int(arguments[0])}, '{arguments[1]}');"
+    conn.commit()
+    cursor.close()
+    await message.reply(f"Админ @{await get_username(int(arguments[0]))} добавлен.")
+
+@dp.message_handler(commands="admrm", chat_id=ADMIN)
+async def admin_remove(message: types.Message):
+    arguments = message.get_args()
+    global adminids
+
+    adminid.remove(arguments)
+    cursor = conn.cursor()
+    sql = f"DELETE FROM admins WHERE userid = {arguments};"
+    cursor.execute(sql)
+    conn.commit()
+    cursor.close()
+    await message.reply(f"Админ @{await get_username(arguments)} удалён.")
+
+@dp.message_handler(commands="admlook", chat_id=ADMIN)
+async def admin_look(message: types.Message):
+    text = ''
+
+    global adminids
+    for admin in adminids:
+        text += f"{str(admin)} - @{await get_username(admin)}\n"
+    await message.answer(text)
+
+@dp.message_handler(commands="id")
+async def get_my_id(message: types.Message):
+    await message.answer(message.from_user.id)
