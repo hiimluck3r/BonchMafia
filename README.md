@@ -60,6 +60,7 @@ services:
       USER: $USER
       PASSWORD: $PASSWORD
       ADMIN: $ADMIN
+      PORT: $PORT
     volumes:
       - ./logs:/~/BonchMafia/logs
       - ./bot/pictures:/~/BonchMafia/bot/pictures
