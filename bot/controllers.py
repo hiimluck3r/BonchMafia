@@ -106,7 +106,7 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
         elif league == "bronze":
             stats_color = "#E6BC97"
             your_league_color = "#E6BC97"
-            nickname_color = "#E6BC97
+            nickname_color = "#E6BC97"
             mentor_color = "#E6BC97"
             league_text = "БРОНЗА"
 
