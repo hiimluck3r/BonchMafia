@@ -83,18 +83,22 @@ async def mycard(message: types.Message):
     else:
         userid = userstats[1]
         don = userstats[2]
-        mafia = userstats[3]
-        sheriff = userstats[4]
-        citizen = userstats[5]
-        won = userstats[6]
-        lost = userstats[7]
+        don_total = userstats[3]
+        mafia = userstats[4]
+        mafia_total = userstats[5]
+        sheriff = userstats[6]
+        sheriff_total = userstats[7]
+        citizen = userstats[8]
+        citizen_total = userstats[9]
+        won = userstats[10]
+        lost = userstats[11]
         total = won+lost
-        mentor = userstats[8]
-        nickname = userstats[9]
+        mentor = userstats[12]
+        nickname = userstats[13]
 
         league = get_league(won, total)
         
-        card_process(nickname, league, don, mafia, sheriff, citizen, won, lost, total, mentor)
+        card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, sheriff_total, citizen, citizen_total, won, lost, total, mentor)
         
         keyboard = get_card_menu()
         card_photo = open(f"/~/BonchMafia/bot/pictures/cards/{nickname}.png", 'rb')
@@ -175,11 +179,14 @@ async def process_profile_picture(message: types.Message, state: FSMContext):
     try:
         data = await state.get_data()
         nickname = data['nickname']
-        print(nickname)
-        await message.photo[-1].download(destination_file=f"/~/BonchMafia/bot/pictures/profile/{nickname}.png", make_dirs=True)
+        print('Found new player: ', nickname)
+
+        await message.photo[-1].download(destination_file=f"/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png")
+        profile_circular_process(nickname)
+
         await state.finish()
         cursor = conn.cursor()
-        sql = f"INSERT INTO users(userid, don, mafia, sheriff, citizen, won, lost, mentor, nickname) VALUES ({message.from_user.id}, 0, 0, 0, 0, 0, 0, '-', '{data['nickname']}');"
+        sql = f"INSERT INTO users(userid, don, don_total, mafia, mafia_total, sheriff, sheriff_total, citizen, citizen_total, won, lost, mentor, nickname) VALUES ({message.from_user.id}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '-', '{data['nickname']}');"
         cursor.execute(sql)
         conn.commit()
         cursor.close()
@@ -392,6 +399,7 @@ async def process_winner(message: types.Message, state: FSMContext):
                 cursor.execute(sql)
                 sql = f"UPDATE users SET won = won+1 WHERE nickname = '{nickname}';"
                 cursor.execute(sql)
+
             
             sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{data['sheriff']}';"
             cursor.execute(sql)
@@ -418,6 +426,20 @@ async def process_winner(message: types.Message, state: FSMContext):
                 cursor.execute(sql)
                 sql = f"UPDATE users SET won = won+1 WHERE nickname = '{nickname}';"
                 cursor.execute(sql)
+        
+        for nickname in data['mafia']:
+            sql = f"UPDATE users SET mafia_total = mafia_total+1 WHERE nickname = '{nickname}'"
+            cursor.execute(sql)
+        
+        for nickname in data['citizen']:
+            sql = f"UPDATE users SET citizen_total = citizen_total+1 WHERE nickname = '{nickname}'"
+            cursor.execute(sql)
+
+        sql = f"UPDATE users SET don_total = don_total+1 WHERE nickname = '{data['don']}'"
+        cursor.execute(sql)
+
+        sql = f"UPDATE users SET sheriff_total = sheriff_total+1 WHERE nickname = '{data['sheriff']}'"
+        cursor.execute(sql)
         
         conn.commit()
         cursor.close()

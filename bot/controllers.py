@@ -3,7 +3,7 @@ import sys
 import psycopg2
 
 from aiogram import types
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image, ImageFont, ImageDraw, ImageFilter, ImageOps
 
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -30,17 +30,163 @@ def goto_menu():
 
     return keyboard
 
-def card_process(nickname, league, don, mafia, sheriff, citizen, won, lost, total, mentor):
+def profile_circular_process(nickname):
     try:
-        card = Image.open(f"/~/BonchMafia/bot/pictures/frames/{league}_frame.png") #todo
-        #font = ImageFont.truetype("Helvetica", 15)
+        mask = Image.open('/~/BonchMafia/bot/pictures/profile/avatar_mask.png').convert('L')
+        profile_image = Image.open(f'/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png')
 
-        #draw = ImageDraw.Draw(card) todo
+        output = ImageOps.fit(profile_image, mask.size, centering=(0.5, 0.5))
+        output.putalpha(mask)
 
-        #draw.text() todo: make a proper text positioning and frames
+        output.save(f'/~/BonchMafia/bot/pictures/profile/{nickname}.png')
+
+        if os.path.exists(f'/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png'):
+            os.remove(f'/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png')
+        else:
+            print(f"File f'/~/BonchMafia/bot/pictures/profile/{nickname}_temp.png' doesn't exist") 
+    except Exception as e:
+        print(f'Found an exception at profile_circular_process: {e}')
+
+def get_textbox(draw, msg, font):
+    _, _, w, h = draw.textbbox((0, 0), msg, font=font)
+    return w, h
+
+def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, sheriff_total, citizen, citizen_total, won, lost, total, mentor):
+    try:
+        background = Image.open(f"/~/BonchMafia/bot/pictures/{league}/background.png")
+        backplate = Image.open(f"/~/BonchMafia/bot/pictures/{league}/backplate.png")
+        profile_picture = Image.open(f"/~/BonchMafia/bot/pictures/profile/{nickname}.png")
+
+        logo = Image.open(f"/~/BonchMafia/bot/pictures/{league}/logo.png")
+        
+        don_icon = Image.open(f"/~/BonchMafia/bot/pictures/{league}/don.png")
+        citizen_icon = Image.open(f"/~/BonchMafia/bot/pictures/{league}/citizen.png")
+        mafia_icon = Image.open(f"/~/BonchMafia/bot/pictures/{league}/mafia.png")
+        sheriff_icon = Image.open(f"/~/BonchMafia/bot/pictures/{league}/sheriff.png")
+        total_icon = Image.open(f"/~/BonchMafia/bot/pictures/{league}/total.png")
+
+        icon_size = (55, 55)
+        don_icon = don_icon.resize(icon_size)
+        citizen_icon = citizen_icon.resize(icon_size)
+        mafia_icon = mafia_icon.resize(icon_size)
+        sheriff_icon = sheriff_icon.resize(icon_size)
+        total_icon = total_icon.resize(icon_size)
+        
+        stats_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-Bold.otf", 24)
+        your_league_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-Regular.otf", 36)
+        league_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-ExtraBold.otf", 36)
+        nickname_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-SemiBold.otf", 48)
+        your_mentor_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-Light.otf", 20)
+        mentor_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-Light.otf", 20)
+        roles_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-Light.otf", 14)
+
+        card = background.copy()
+
+        card.paste(backplate, (180, 182), backplate)
+        card.paste(profile_picture, (185, 187), profile_picture)
+        card.paste(logo, (499, 1032), logo)
+
+        card.paste(total_icon, (333, 913), total_icon)
+
+        card.paste(sheriff_icon, (483, 699), sheriff_icon)
+        card.paste(citizen_icon, (182, 699), citizen_icon)
+
+        card.paste(don_icon, (483, 795), don_icon)
+        card.paste(mafia_icon, (182, 795), mafia_icon)
+        
+        draw = ImageDraw.Draw(im=card)
+
+        if league == "calibration":
+            league_text = "ОПРЕДЕЛЯЕТСЯ"
+        elif league == "bronze":
+            stats_color = "#E5BB97"
+            your_league_color = "#F5C897"
+            nickname_color = "#EDBE97"
+            mentor_color = "#E6BC97"
+            league_text = "БРОНЗА"
+
+        elif league == "silver":
+            league_text = "СЕРЕБРО"
+            stats_color = "#"
+            your_league_color = "#"
+            nickname_color = "#"
+            mentor_color = "#"
+
+        elif league == "gold":
+            league_text = "ЗОЛОТО"
+            stats_color = "#"
+            your_league_color = "#"
+            nickname_color = "#"
+            mentor_color = "#"
+
+        elif league == "platinum":
+            league_text = "ПЛАТИНА"
+            stats_color = "#"
+            your_league_color = "#"
+            nickname_color = "#"
+            mentor_color = "#"
+
+        elif league == "ruby":
+            league_text = "РУБИН"
+            stats_color = "#"
+            your_league_color = "#"
+            nickname_color = "#"
+            mentor_color = "#"
+
+        elif league == "diamond":
+            league_text = "АЛМАЗ"
+            stats_color = "#"
+            your_league_color = "#"
+            nickname_color = "#"
+            mentor_color = "#"
+
+        else:
+            league_text = "UNKNOWN"
+            stats_color = "#f"
+            your_league_color = "#f"
+            nickname_color = "#f"
+            mentor_color = "#f"
+            print(f"Found wrong league at card processing: {league}")
+
+        w, h = get_textbox(draw, nickname, nickname_font)
+        draw.text(((720-w)/2, 563), nickname, nickname_color, nickname_font)
+
+        draw.text((423, 699), "ШЕРИФ", stats_color, roles_font, align="right")
+        draw.text((430, 718), f"{sheriff}/{sheriff_total}", stats_color, stats_font, align="left")
+        
+        draw.text((247, 699), "МИРНЫЙ", stats_color, roles_font, align="left")
+        draw.text((247, 718), f"{citizen}/{citizen_total}", stats_color, stats_font, align="right")
+
+        draw.text((443, 795), "ДОН", stats_color, roles_font, align="right")
+        draw.text((430, 814), f"{don}/{don_total}", stats_color, stats_font, align="left")
+
+        draw.text((247, 795), "МАФИЯ", stats_color, roles_font, align="left")
+        draw.text((247, 814), f"{mafia}/{mafia_total}", stats_color, stats_font, align="right")
+
+        draw.text((314, 862), "ВСЕГО ПОБЕД", stats_color, roles_font)
+        w, h = get_textbox(draw, f"{won}/{total}", stats_font)
+        draw.text(((720-w)/2, 879), f"{won}/{total}", stats_color, stats_font, align="center")
+
+        w, h = get_textbox(draw, "ТВОЙ РАНГ:", your_league_font)
+        draw.text(((720-w)/2, 62), "ТВОЙ РАНГ:", your_league_color, your_league_font)
+
+        w, h = get_textbox(draw, league_text, league_font)
+        draw.text(((720-w)/2, 110), league_text, your_league_color, league_font)
+
+        if mentor!='-':
+            w, h = get_textbox(draw, "НАСТАВНИК:", mentor_font)
+            draw.text(((728-w)/2, 624), "НАСТАВНИК:", mentor_color, mentor_font)
+
+            w, h = get_textbox(draw, mentor, mentor_font)
+            draw.text(((723-w)/2, 647), mentor, mentor_color, mentor_font)
+
         card.save(f"/~/BonchMafia/bot/pictures/cards/{nickname}.png")
+        return 0
+
     except Exception as e:
         print(f'Found an exception at controllers.card_process: {e}')
+        
+        return 1
     
     return
 
@@ -68,12 +214,6 @@ def get_league(won, total):
         league = "diamond"
     
     return league
-
-def check_admin(userid, adminids):
-    if userid in adminids:
-        return True
-    else:
-        return False
     
 def get_admin_menu():
     keyboard = types.InlineKeyboardMarkup(row_width=2)
