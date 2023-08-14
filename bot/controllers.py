@@ -46,14 +46,15 @@ def card_process(nickname, league, don, mafia, sheriff, citizen, won, lost, tota
 
 def get_league(won, total):
     if total < 10:
-        league = "calibration"
-        winrate = 0
+        winrate = -1
     elif 10 <= total <= 48:
         winrate = round(won/48)*100
     else:
         winrate = round(won/total)*100
 
-    if winrate <= 16:
+    if winrate == -1:
+        league = "calibration"
+    elif 0 <= winrate <= 16:
         league = "bronze"
     elif 17 <= winrate <= 26:
         league = "silver"
