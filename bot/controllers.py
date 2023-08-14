@@ -98,47 +98,52 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
 
         if league == "calibration":
             league_text = "ОПРЕДЕЛЯЕТСЯ"
+            stats_color = "#BB7F41"
+            your_league_color = "#BB7F41"
+            nickname_color = "#BB7F41"
+            mentor_color = "#BB7F41"
+
         elif league == "bronze":
-            stats_color = "#E5BB97"
-            your_league_color = "#F5C897"
-            nickname_color = "#EDBE97"
+            stats_color = "#E6BC97"
+            your_league_color = "#E6BC97"
+            nickname_color = "#E6BC97
             mentor_color = "#E6BC97"
             league_text = "БРОНЗА"
 
         elif league == "silver":
             league_text = "СЕРЕБРО"
-            stats_color = "#"
-            your_league_color = "#"
-            nickname_color = "#"
-            mentor_color = "#"
+            stats_color = "#ECEAE4"
+            your_league_color = "#ECEAE4"
+            nickname_color = "#ECEAE4"
+            mentor_color = "#ECEAE4"
 
         elif league == "gold":
             league_text = "ЗОЛОТО"
-            stats_color = "#"
-            your_league_color = "#"
-            nickname_color = "#"
-            mentor_color = "#"
+            stats_color = "#EEBB6C"
+            your_league_color = "#EEBB6C"
+            nickname_color = "#EEBB6C"
+            mentor_color = "#EEBB6C"
 
         elif league == "platinum":
             league_text = "ПЛАТИНА"
-            stats_color = "#"
-            your_league_color = "#"
-            nickname_color = "#"
-            mentor_color = "#"
+            stats_color = "#C5C5C5"
+            your_league_color = "#C5C5C5"
+            nickname_color = "#C5C5C5"
+            mentor_color = "#C5C5C5"
 
         elif league == "ruby":
             league_text = "РУБИН"
-            stats_color = "#"
-            your_league_color = "#"
-            nickname_color = "#"
-            mentor_color = "#"
+            stats_color = "#FF8585"
+            your_league_color = "#FF8585"
+            nickname_color = "#FF8585"
+            mentor_color = "#FF8585"
 
         elif league == "diamond":
             league_text = "АЛМАЗ"
-            stats_color = "#"
-            your_league_color = "#"
-            nickname_color = "#"
-            mentor_color = "#"
+            stats_color = "#5ED2F8"
+            your_league_color = "#5ED2F8"
+            nickname_color = "#5ED2F8"
+            mentor_color = "#5ED2F8"
 
         else:
             league_text = "UNKNOWN"
