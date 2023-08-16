@@ -39,6 +39,27 @@ while flag:
 
 
 """
+Никнейм-чекер
+"""
+def nickname_checker(nickname):
+    if nickname == "blank":
+        return True
+
+    cursor = conn.cursor()
+    sql = f"SELECT COUNT(*) FROM users WHERE nickname ILIKE '{nickname}';"
+    cursor.execute(sql)
+    user_count = cursor.fetchone()[0]
+    cursor.close()
+
+    if user_count == 1:
+        return True
+    elif user_count == 0:
+        return False
+    else:
+        print(f'why THE HELL do we have {user_count} {nickname}?????', file=sys.stderr)
+        return False
+
+"""
 todo Блок для работы с блокировкой и разблокировкой пользователей
 """
 
@@ -50,7 +71,7 @@ todo Блок для работы с блокировкой и разблоки�
 async def support(message: types.Message):
     await message.answer(f'По всем вопросам обращайтесь в личные сообщения группы ВК (https://vk.com/bonchmafia).\nИли в наш телеграм канал (t.me/bonchmafia).')
 
-greet = "Добро пожаловать в клуб BonchMafia!\n\n Этот бот ведет учет игр, которые отражаются на вашей статистике. Свою статистику вы можете посмотреть в виде игровой карты в главном меню."
+greet = "Добро пожаловать в клуб BonchMafia!\n\nЭтот бот ведет учет игр, которые отражаются на вашей статистике. Свою статистику вы можете посмотреть в виде игровой карты в главном меню."
 
 @dp.message_handler(commands="start")
 async def greeter(message: types.Message):
@@ -160,7 +181,6 @@ async def process_nickname_invalid(message: types.Message, state: FSMContext):
     return await message.answer(f'Неверный никнейм.\nИмя игрока не должно содержать символы "., /, _". Длина ника - от 1 до 20 символов.')
     await state.set_state(CardSetup.nickname.state)
 
-
 @dp.message_handler(state=OtherCard.nickname)
 async def process_else_card(message: types.Message, state: FSMContext):
     try:
@@ -171,12 +191,13 @@ async def process_else_card(message: types.Message, state: FSMContext):
     
     await state.finish()
 
-    nickname = data['nickname']
+    nickname = data['nickname'] #implement nickname-checker
     cursor = conn.cursor()
-    cursor.execute(f"SELECT * FROM users WHERE nickname='{nickname}'")
+    cursor.execute(f"SELECT * FROM users WHERE nickname ILIKE'{nickname}'")
     userstats = cursor.fetchone()
     cursor.close()
     if userstats is None:
+        #todo: find nearest nickname
         await message.answer("Похоже, что такого игрока нет.", reply_markup=goto_menu())
     else:
         userid = userstats[1]
@@ -215,7 +236,7 @@ async def process_nickname(message: types.Message, state: FSMContext):
         print(f'Found an exception at process_nickname data parse: {e}', file=sys.stderr)
 
     cursor = conn.cursor()
-    sql = f"SELECT COUNT(*) FROM users WHERE (nickname = '{message.text}');"
+    sql = f"SELECT COUNT(*) FROM users WHERE nickname ILIKE '{message.text}';"
     cursor.execute(sql)
     overlapping_users = cursor.fetchone()[0]
     cursor.close()
@@ -282,7 +303,7 @@ async def process_changed_nickname(message: types.Message, state: FSMContext):
         print(f'Found an exception at process_nickname data parse: {e}', file=sys.stderr)
 
     cursor = conn.cursor()
-    sql = f"SELECT COUNT(*) FROM users WHERE (nickname = '{message.text}');"
+    sql = f"SELECT COUNT(*) FROM users WHERE nickname ILIKE '{message.text}';"
     cursor.execute(sql)
     overlapping_users = cursor.fetchone()[0]
     if overlapping_users >= 1:
@@ -353,25 +374,6 @@ class GameProtocol(StatesGroup):
     citizen = State()
     winner = State()
 
-def nickname_checker(nickname):
-    if nickname == "blank":
-        return True
-
-    cursor = conn.cursor()
-    sql = f"SELECT COUNT(*) FROM users WHERE nickname = '{nickname}';"
-    cursor.execute(sql)
-    user_count = cursor.fetchone()[0]
-    cursor.close()
-
-    if user_count == 1:
-        return True
-    elif user_count == 0:
-        return False
-    else:
-        print(f'why THE HELL do we have {user_count} {nickname}?????')
-        return False
-    
-
 @dp.message_handler(commands="admin", chat_id=adminids)
 async def admin_menu(message: types.Message):
     print(f"Admin logged: {message.from_user.id}", file=sys.stderr)
@@ -418,10 +420,15 @@ async def process_student_name(message: types.Message, state: FSMContext):
     data = await state.get_data()
 
     if nickname_checker(data['mentor_name']):
+        cursor = conn.cursor()
+
         student = data['student_name']
         mentor = data['mentor_name']
-        cursor = conn.cursor()
-        sql = f"UPDATE users SET mentor = '{mentor}' WHERE nickname = '{student}';"
+        sql = f"SELECT * FROM users WHERE nickname ILIKE '{mentor}';"
+        cursor.execute(sql)
+        mentor = cursor.fetchone()[-1]
+
+        sql = f"UPDATE users SET mentor = '{mentor}' WHERE nickname ILIKE '{student}';"
         cursor.execute(sql)
         conn.commit()
         cursor.close()
@@ -431,7 +438,7 @@ async def process_student_name(message: types.Message, state: FSMContext):
         await message.answer(f"Наставник изменён.", reply_markup=keyboard)
     else:
         await state.set_state(Mentor.mentor_name)
-        await message.answer(f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
+        await message.answer(f"Пользователь {data['mentor_name']} не найден. Попробуйте ещё раз.")
 
 """
 Внесение игрового протокола
@@ -526,56 +533,56 @@ async def process_winner(message: types.Message, state: FSMContext):
         cursor.execute(sql)
 
         if data['winner']=='ч':
-            sql = f"UPDATE users SET don = don+1 WHERE nickname = '{data['don']}';"
+            sql = f"UPDATE users SET don = don+1 WHERE nickname ILIKE '{data['don']}';"
             cursor.execute(sql)
-            sql = f"UPDATE users SET won = won+1 WHERE nickname = '{data['don']}';"
+            sql = f"UPDATE users SET won = won+1 WHERE nickname ILIKE '{data['don']}';"
             cursor.execute(sql)
 
             for nickname in data['mafia']:
-                sql = f"UPDATE users SET mafia = mafia+1 WHERE nickname = '{nickname}';"
+                sql = f"UPDATE users SET mafia = mafia+1 WHERE nickname ILIKE '{nickname}';"
                 cursor.execute(sql)
-                sql = f"UPDATE users SET won = won+1 WHERE nickname = '{nickname}';"
+                sql = f"UPDATE users SET won = won+1 WHERE nickname ILIKE '{nickname}';"
                 cursor.execute(sql)
 
             
-            sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{data['sheriff']}';"
+            sql = f"UPDATE users SET lost = lost+1 WHERE nickname ILIKE '{data['sheriff']}';"
             cursor.execute(sql)
 
             for nickname in data['citizen']:
-                sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{nickname}';"
+                sql = f"UPDATE users SET lost = lost+1 WHERE nickname ILIKE '{nickname}';"
                 cursor.execute(sql)
 
         else:
-            sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{data['don']}';"
+            sql = f"UPDATE users SET lost = lost+1 WHERE nickname ILIKE '{data['don']}';"
             cursor.execute(sql)
 
             for nickname in data['mafia']:
-                sql = f"UPDATE users SET lost = lost+1 WHERE nickname = '{nickname}';"
+                sql = f"UPDATE users SET lost = lost+1 WHERE nickname ILIKE '{nickname}';"
                 cursor.execute(sql)
 
-            sql = f"UPDATE users SET sheriff = sheriff+1 WHERE nickname = '{data['sheriff']}';"
+            sql = f"UPDATE users SET sheriff = sheriff+1 WHERE nickname ILIKE '{data['sheriff']}';"
             cursor.execute(sql)
-            sql = f"UPDATE users SET won = won+1 WHERE nickname = '{data['sheriff']}';"
+            sql = f"UPDATE users SET won = won+1 WHERE nickname ILIKE '{data['sheriff']}';"
             cursor.execute(sql)
 
             for nickname in data['citizen']:
-                sql = f"UPDATE users SET citizen = citizen+1 WHERE nickname = '{nickname}';"
+                sql = f"UPDATE users SET citizen = citizen+1 WHERE nickname ILIKE '{nickname}';"
                 cursor.execute(sql)
-                sql = f"UPDATE users SET won = won+1 WHERE nickname = '{nickname}';"
+                sql = f"UPDATE users SET won = won+1 WHERE nickname ILIKE '{nickname}';"
                 cursor.execute(sql)
         
         for nickname in data['mafia']:
-            sql = f"UPDATE users SET mafia_total = mafia_total+1 WHERE nickname = '{nickname}'"
+            sql = f"UPDATE users SET mafia_total = mafia_total+1 WHERE nickname ILIKE '{nickname}'"
             cursor.execute(sql)
         
         for nickname in data['citizen']:
-            sql = f"UPDATE users SET citizen_total = citizen_total+1 WHERE nickname = '{nickname}'"
+            sql = f"UPDATE users SET citizen_total = citizen_total+1 WHERE nickname ILIKE '{nickname}'"
             cursor.execute(sql)
 
-        sql = f"UPDATE users SET don_total = don_total+1 WHERE nickname = '{data['don']}'"
+        sql = f"UPDATE users SET don_total = don_total+1 WHERE nickname ILIKE '{data['don']}'"
         cursor.execute(sql)
 
-        sql = f"UPDATE users SET sheriff_total = sheriff_total+1 WHERE nickname = '{data['sheriff']}'"
+        sql = f"UPDATE users SET sheriff_total = sheriff_total+1 WHERE nickname ILIKE '{data['sheriff']}'"
         cursor.execute(sql)
         
         conn.commit()
