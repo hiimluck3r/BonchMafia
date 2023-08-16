@@ -315,8 +315,13 @@ async def process_changed_nickname(message: types.Message, state: FSMContext):
         cursor.execute(sql)
         nickname = cursor.fetchone()[-1]
         await message.answer(f"Имя пользователя изменено.", reply_markup=goto_menu())
+
         sql = f"UPDATE users SET nickname = '{data['nickname']}' WHERE userid = {message.from_user.id};"
         cursor.execute(sql)
+
+        sql = f"UPDATE users SET mentor = '{data['nickname']}' WHERE mentor = '{nickname}';"
+        cursor.execute(sql)
+
         conn.commit()
         cursor.close()
 
