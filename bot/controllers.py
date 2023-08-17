@@ -183,7 +183,7 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
         w, h = get_textbox(draw, league_text, league_font)
         draw.text(((720-w)/2, 110), league_text, your_league_color, league_font)
 
-        if mentor!='-':
+        if (mentor!='-') and (mentor!='blank'):
             w, h = get_textbox(draw, "НАСТАВНИК:", mentor_font)
             draw.text(((728-w)/2, 624), "НАСТАВНИК:", mentor_color, mentor_font)
 
