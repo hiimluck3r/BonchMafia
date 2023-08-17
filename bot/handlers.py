@@ -42,7 +42,7 @@ while flag:
 Никнейм-чекер
 """
 def nickname_checker(nickname):
-    if nickname == "blank":
+    if nickname == "blank" or nickname=="-":
         return True
 
     cursor = conn.cursor()
@@ -612,6 +612,7 @@ async def admin_add(message: types.Message):
     adminids.append(int(arguments[0]))
     cursor = conn.cursor()
     sql = f"INSERT INTO admins (userid, nickname) VALUES ({int(arguments[0])}, '{arguments[1]}');"
+    cursor.execute(sql)
     conn.commit()
     cursor.close()
     await message.reply(f"Админ @{await get_username(int(arguments[0]))} добавлен.")
