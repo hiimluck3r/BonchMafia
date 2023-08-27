@@ -26,7 +26,7 @@ services:
 
   main:
     container_name: bonchmafia
-    image: luck3rinc/bonchmafia:latest
+    build: ./bot
     restart: on-failure
     environment:
       API_TOKEN: $API_TOKEN
@@ -39,6 +39,7 @@ services:
     volumes:
       - ./logs:/~/BonchMafia/logs
       - ./bot/pictures:/~/BonchMafia/bot/pictures
+      - ./bot/greet:/~/BonchMafia/bot/greet
     depends_on:
       - db
 
