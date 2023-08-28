@@ -162,13 +162,15 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
         draw.text(((720-w)/2, 563), nickname, nickname_color, nickname_font)
 
         draw.text((423, 699), "ШЕРИФ", stats_color, roles_font, align="right")
-        draw.text((430, 718), f"{sheriff}/{sheriff_total}", stats_color, stats_font, align="left")
+        w, h = get_textbox(draw, f"{sheriff}/{sheriff_total}", stats_font)
+        draw.text((474-w, 718), f"{sheriff}/{sheriff_total}", stats_color, stats_font, align="left")
         
         draw.text((247, 699), "МИРНЫЙ", stats_color, roles_font, align="left")
         draw.text((247, 718), f"{citizen}/{citizen_total}", stats_color, stats_font, align="right")
 
         draw.text((443, 795), "ДОН", stats_color, roles_font, align="right")
-        draw.text((430, 814), f"{don}/{don_total}", stats_color, stats_font, align="left")
+        w, h = get_textbox(draw, f"{don}/{don_total}", stats_font)
+        draw.text((474-w, 814), f"{don}/{don_total}", stats_color, stats_font, align="left")
 
         draw.text((247, 795), "МАФИЯ", stats_color, roles_font, align="left")
         draw.text((247, 814), f"{mafia}/{mafia_total}", stats_color, stats_font, align="right")
