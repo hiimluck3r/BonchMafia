@@ -221,7 +221,7 @@ async def process_else_card(message: types.Message, state: FSMContext):
         card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, sheriff_total, citizen, citizen_total, won, lost, total, mentor)
         
         card_photo = open(f"/~/BonchMafia/bot/pictures/cards/{nickname}.png", 'rb')
-        await message.answer_photo(card_photo, reply_markup=goto_menu(),
+        await message.answer_photo(card_photo, reply_markup=get_main_menu(),
         caption=f"Карта {nickname}")
 
 """
