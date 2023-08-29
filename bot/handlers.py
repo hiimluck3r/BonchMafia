@@ -502,14 +502,14 @@ async def process_mafia(message: types.Message, state: FSMContext):
     await state.update_data(mafia=mafia)
 
     await state.set_state(GameProtocol.citizen)
-    await message.answer("Введите никнеймы мирных игроков (пример dflt.Кринж... 7 игроков):")
+    await message.answer("Введите никнеймы мирных игроков (пример dflt.Кринж... 6 игроков):")
 
 @dp.message_handler(state=GameProtocol.citizen)
 async def process_citizen(message: types.Message, state: FSMContext):
     citizen = message.text.split('.')
 
     for nickname in citizen:
-        if nickname_checker(nickname) and len(citizen)==7:
+        if nickname_checker(nickname) and len(citizen)==6:
             pass
         elif len(citizen)!=7:
             await message.answer(f"Неверно заданы пользователи. Указанное количество пользователей: {len(citizen)}")
