@@ -25,14 +25,12 @@ while flag:
         flag = False
 
         cursor = conn.cursor()
-        sql = f"SELECT * FROM admins;"
+        sql = "SELECT * FROM admins;"
         cursor.execute(sql)
         data = cursor.fetchall()
         cursor.close()
 
-        for row in data:
-            adminids.append(row[1])
-        
+        adminids.extend(row[1] for row in data)
     except Exception as e:
         print("Can't establish connection to database. Error:", e)
         sleep(3)
@@ -42,7 +40,7 @@ while flag:
 Никнейм-чекер
 """
 def nickname_checker(nickname):
-    if nickname == "blank" or nickname == "-":
+    if nickname in ["blank", "-"]:
         return True
 
     cursor = conn.cursor()
@@ -84,7 +82,7 @@ async def greeter(message: types.Message):
 @dp.message_handler(Text(equals="Главное меню"))
 async def main_menu(message: types.Message):
     keyboard = get_main_menu()
-    await message.answer(f"Главное меню", reply_markup=keyboard)
+    await message.answer("Главное меню", reply_markup=keyboard)
 
 """
 Блок с пользовательской картой
@@ -150,9 +148,11 @@ async def card_manager(call: types.CallbackQuery, state: FSMContext):
             keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
             keyboard.add("Отмена")
 
-            await bot.send_message(chat_id = call.from_user.id,
-            text = f"Введите свой никнейм:",
-            reply_markup=keyboard)
+            await bot.send_message(
+                chat_id=call.from_user.id,
+                text="Введите свой никнейм:",
+                reply_markup=keyboard,
+            )
 
             await state.set_state(CardSetup.nickname.state)
         except Exception as e:
@@ -171,7 +171,7 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     if current_state is None:
         return
 
-    print(f'Cancelling state %r', current_state, file=sys.stderr)
+    print('Cancelling state %r', current_state, file=sys.stderr)
     await state.finish()
 
     await message.answer('Ввод данных остановлен.', reply_markup=keyboard)
@@ -179,7 +179,6 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 @dp.message_handler(lambda message: any([(len(message.text)>20), (len(message.text)<1), ('.' in message.text), ('/' in message.text), ('_' in message.text)]), state=CardSetup.nickname)
 async def process_nickname_invalid(message: types.Message, state: FSMContext):
     return await message.answer(f'Неверный никнейм.\nИмя игрока не должно содержать символы "., /, _". Длина ника - от 1 до 20 символов.')
-    await state.set_state(CardSetup.nickname.state)
 
 @dp.message_handler(state=OtherCard.nickname)
 async def process_else_card(message: types.Message, state: FSMContext):
@@ -241,10 +240,12 @@ async def process_nickname(message: types.Message, state: FSMContext):
     overlapping_users = cursor.fetchone()[0]
     cursor.close()
     if overlapping_users >= 1:
-        await message.answer(f"Уже имеется пользователь с таким именем. Введите другой никнейм:")
+        await message.answer(
+            "Уже имеется пользователь с таким именем. Введите другой никнейм:"
+        )
         await state.set_state(CardSetup.nickname.state)
     else:
-        await message.answer(f"Теперь добавьте изображение профиля:")
+        await message.answer("Теперь добавьте изображение профиля:")
         await state.set_state(CardSetup.profile_picture.state)
 
 @dp.message_handler(content_types=["photo"], state=CardSetup.profile_picture)
@@ -265,7 +266,10 @@ async def process_profile_picture(message: types.Message, state: FSMContext):
         conn.commit()
         cursor.close()
         keyboard = goto_menu()
-        await message.answer(f"Ваша карта была успешно добавлена. Приятных игр!", reply_markup=keyboard)
+        await message.answer(
+            "Ваша карта была успешно добавлена. Приятных игр!",
+            reply_markup=keyboard,
+        )
     except Exception as e:
         print(f"Found an exception at process_profile_picture: {e}", file=sys.stderr)
 
@@ -283,7 +287,7 @@ async def change_nickname(message: types.Message, state: FSMContext):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Отмена")
 
-    await message.answer(f"Введите новый никнейм:", reply_markup=keyboard)
+    await message.answer("Введите новый никнейм:", reply_markup=keyboard)
 
     await state.set_state(ChangeNickname.nickname.state)
 
@@ -291,7 +295,6 @@ async def change_nickname(message: types.Message, state: FSMContext):
 @dp.message_handler(lambda message: any([(len(message.text)>20), (len(message.text)<1), ('.' in message.text), ('/' in message.text), ('_' in message.text)]), state=ChangeNickname.nickname)
 async def process_changed_nickname_invalid(message: types.Message, state: FSMContext):
     return await message.answer(f'Неверный никнейм.\nИмя игрока не должно содержать символы "., /, _". Длина ника - от 1 до 20 символов.')
-    await state.set_state(ChangeNickname.finisher.state)
 
 @dp.message_handler(state=ChangeNickname.nickname)
 async def process_changed_nickname(message: types.Message, state: FSMContext):
@@ -308,13 +311,15 @@ async def process_changed_nickname(message: types.Message, state: FSMContext):
     overlapping_users = cursor.fetchone()[0]
     if overlapping_users >= 1:
         cursor.close()
-        await message.answer(f"Уже имеется пользователь с таким именем. Введите другой никнейм:")
+        await message.answer(
+            "Уже имеется пользователь с таким именем. Введите другой никнейм:"
+        )
         await state.set_state(CardSetup.nickname.state)
     else:
         sql = f"SELECT * FROM users WHERE userid = {message.from_user.id};"
         cursor.execute(sql)
         nickname = cursor.fetchone()[-1]
-        await message.answer(f"Имя пользователя изменено.", reply_markup=goto_menu())
+        await message.answer("Имя пользователя изменено.", reply_markup=goto_menu())
 
         sql = f"UPDATE users SET nickname = '{data['nickname']}' WHERE userid = {message.from_user.id};"
         cursor.execute(sql)
@@ -340,7 +345,9 @@ async def change_profile_picture(message: types.Message, state: FSMContext):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Отмена")
 
-    await message.answer(f"Пришлите новое изображение профиля:", reply_markup=keyboard)
+    await message.answer(
+        "Пришлите новое изображение профиля:", reply_markup=keyboard
+    )
 
     await state.set_state(ChangePicture.photo.state)
 
@@ -383,7 +390,7 @@ class GameProtocol(StatesGroup):
 async def admin_menu(message: types.Message):
     print(f"Admin logged: {message.from_user.id}", file=sys.stderr)
     keyboard = get_admin_menu()
-    await message.answer(f"Админ меню", reply_markup=keyboard)
+    await message.answer("Админ меню", reply_markup=keyboard)
 
 @dp.callback_query_handler(Text(startswith="admin"), chat_id=adminids)
 async def admin_query_handler(call: types.CallbackQuery, state: FSMContext):
@@ -411,10 +418,10 @@ async def admin_query_handler(call: types.CallbackQuery, state: FSMContext):
 async def process_student_name(message: types.Message, state: FSMContext):
     await state.update_data(student_name=message.text)
     data = await state.get_data()
-    
+
     if nickname_checker(data['student_name']):
         await state.set_state(Mentor.mentor_name)
-        await message.answer(f"Введите никнейм наставника:")
+        await message.answer("Введите никнейм наставника:")
     else:
         await state.set_state(Mentor.student_name)
         await message.answer(f"Пользователь {data['student_name']} не найден. Попробуйте ещё раз.")
@@ -440,7 +447,7 @@ async def process_student_name(message: types.Message, state: FSMContext):
 
         await state.finish()
         keyboard = goto_menu()
-        await message.answer(f"Наставник изменён.", reply_markup=keyboard)
+        await message.answer("Наставник изменён.", reply_markup=keyboard)
     else:
         await state.set_state(Mentor.mentor_name)
         await message.answer(f"Пользователь {data['mentor_name']} не найден. Попробуйте ещё раз.")
@@ -471,7 +478,7 @@ async def process_don(message: types.Message, state: FSMContext):
         await state.set_state(GameProtocol.sheriff)
         await message.answer("Введите никнейм шерифа:")
     else:
-        await message.answer(f"Пользователь не найден. Попробуйте ещё раз.")
+        await message.answer("Пользователь не найден. Попробуйте ещё раз.")
         await state.set_state(GameProtocol.don)
 
 @dp.message_handler(state=GameProtocol.sheriff)
@@ -481,7 +488,7 @@ async def process_sheriff(message: types.Message, state: FSMContext):
         await state.set_state(GameProtocol.mafia)
         await message.answer("Введите никнеймы оставшихся 2 мафий через точку (пример dflt.Кринж):")
     else:
-        await message.answer(f"Пользователь не найден. Попробуйте ещё раз.")
+        await message.answer("Пользователь не найден. Попробуйте ещё раз.")
         await state.set_state(GameProtocol.sheriff)
 
 @dp.message_handler(state=GameProtocol.mafia)
@@ -524,7 +531,7 @@ async def process_citizen(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=GameProtocol.winner)
 async def process_winner(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'ч' or message.text.lower()=='к':
+    if message.text.lower() in ['ч', 'к']:
         keyboard = goto_menu()
         await state.update_data(winner=message.text.lower())
         data = await state.get_data()
@@ -549,7 +556,7 @@ async def process_winner(message: types.Message, state: FSMContext):
                 sql = f"UPDATE users SET won = won+1 WHERE nickname ILIKE '{nickname}';"
                 cursor.execute(sql)
 
-            
+
             sql = f"UPDATE users SET lost = lost+1 WHERE nickname ILIKE '{data['sheriff']}';"
             cursor.execute(sql)
 
@@ -575,11 +582,11 @@ async def process_winner(message: types.Message, state: FSMContext):
                 cursor.execute(sql)
                 sql = f"UPDATE users SET won = won+1 WHERE nickname ILIKE '{nickname}';"
                 cursor.execute(sql)
-        
+
         for nickname in data['mafia']:
             sql = f"UPDATE users SET mafia_total = mafia_total+1 WHERE nickname ILIKE '{nickname}'"
             cursor.execute(sql)
-        
+
         for nickname in data['citizen']:
             sql = f"UPDATE users SET citizen_total = citizen_total+1 WHERE nickname ILIKE '{nickname}'"
             cursor.execute(sql)
@@ -589,7 +596,7 @@ async def process_winner(message: types.Message, state: FSMContext):
 
         sql = f"UPDATE users SET sheriff_total = sheriff_total+1 WHERE nickname ILIKE '{data['sheriff']}'"
         cursor.execute(sql)
-        
+
         conn.commit()
         cursor.close()
         await message.answer("Игра записана.", reply_markup=keyboard)

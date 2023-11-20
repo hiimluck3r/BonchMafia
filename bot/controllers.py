@@ -60,7 +60,7 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
         profile_picture = Image.open(f"/~/BonchMafia/bot/pictures/profile/{nickname}.png")
 
         logo = Image.open(f"/~/BonchMafia/bot/pictures/{league}/logo.png")
-        
+
         don_icon = Image.open(f"/~/BonchMafia/bot/pictures/{league}/don.png")
         citizen_icon = Image.open(f"/~/BonchMafia/bot/pictures/{league}/citizen.png")
         mafia_icon = Image.open(f"/~/BonchMafia/bot/pictures/{league}/mafia.png")
@@ -73,7 +73,7 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
         mafia_icon = mafia_icon.resize(icon_size)
         sheriff_icon = sheriff_icon.resize(icon_size)
         total_icon = total_icon.resize(icon_size)
-        
+
         stats_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-Bold.otf", 24)
         your_league_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-Regular.otf", 36)
         league_font = ImageFont.truetype("/~/BonchMafia/bot/pictures/fonts/VelaSans-ExtraBold.otf", 36)
@@ -98,7 +98,7 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
 
         card.paste(don_icon, (483, 795), don_icon)
         card.paste(mafia_icon, (182, 795), mafia_icon)
-        
+
         draw = ImageDraw.Draw(im=card)
 
         if league == "calibration":
@@ -163,7 +163,7 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
 
         draw.text((423, 699), "ШЕРИФ", stats_color, roles_font, align="right")
         draw.text((430, 718), f"{sheriff}/{sheriff_total}", stats_color, stats_font, align="left")
-        
+
         draw.text((247, 699), "МИРНЫЙ", stats_color, roles_font, align="left")
         draw.text((247, 718), f"{citizen}/{citizen_total}", stats_color, stats_font, align="right")
 
@@ -183,7 +183,7 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
         w, h = get_textbox(draw, league_text, league_font)
         draw.text(((720-w)/2, 110), league_text, your_league_color, league_font)
 
-        if (mentor!='-') and (mentor!='blank'):
+        if mentor not in ['-', 'blank']:
             w, h = get_textbox(draw, "НАСТАВНИК:", mentor_font)
             draw.text(((728-w)/2, 624), "НАСТАВНИК:", mentor_color, mentor_font)
 
@@ -195,9 +195,9 @@ def card_process(nickname, league, don, don_total, mafia, mafia_total, sheriff, 
 
     except Exception as e:
         print(f'Found an exception at controllers.card_process: {e}')
-        
+
         return 1
-    
+
     return
 
 def get_league(won, total):
